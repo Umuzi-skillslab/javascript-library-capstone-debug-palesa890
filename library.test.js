@@ -233,7 +233,7 @@ describe("String Operations", () => {
   test("formatBookInfo safely transforms metrics into template streams", () => {
     const dummy = { title: " simple title ", author: "Author", year: 2020 };
     const result = formatBookInfo(dummy);
-    expect(result).toContain("TITLE: SIMPLE TITLE");
+    expect(result).toContain("Title: SIMPLE TITLE");
   });
 });
 
