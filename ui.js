@@ -217,24 +217,42 @@ function handleBorrowSubmit(event) {
     return;
   }
 
-  const systemAuthorizationStatus = borrowBook(memberId, targetIsbn);
+  let resolvedMember = members.find(
+    (m) => m.id.toLowerCase() === memberId.toLowerCase(),
+  );
+  if (!resolvedMember) {
+    resolvedMember = members.find(
+      (m) => m.name.toLowerCase() === memberId.toLowerCase(),
+    );
+  }
 
-  if (systemAuthorizationStatus) {
+  if (!resolvedMember) {
     displaySystemToast(
-      `Transaction Complete! Book matching barcode [${targetIsbn}] assigned to Member [${memberId}].`,
+      `We couldn't find a member matching "${memberId}".`,
+      "danger",
+    );
+    return;
+  }
+
+  // Run the transaction (returns true or false)
+  const success = borrowBook(resolvedMember.id, targetIsbn);
+
+  if (success) {
+    displaySystemToast(
+      `Transaction Complete! "${resolvedMember.name}" has borrowed this book.`,
       "success",
     );
     borrowForm.reset();
-
     loadCatalogue();
     renderMemberList();
     updateStatisticsDisplay();
     saveToLocalStorage();
   } else {
-    displaySystemToast(
-      "Transaction failed. Please check that the member ID and ISBN are correct, and that the book is currently in stock",
-      "danger",
-    );
+    // Read the error set during execution, or fallback to a default message
+    const errorMessage =
+      borrowBook.lastError ||
+      "Transaction failed. Please check your parameters.";
+    displaySystemToast(errorMessage, "danger");
   }
 }
 

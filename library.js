@@ -8,7 +8,6 @@ export let members = [];
 export const LATE_FEE_PER_DAY = 0.5;
 export const MAX_BOOKS_PER_MEMBER = 5;
 
-
 export class Book {
   constructor(isbn, title, author, year, copies = 1, category = "fiction") {
     this.isbn = String(isbn).trim();
@@ -85,9 +84,9 @@ export class Member {
     this.name = String(name).trim();
     this.email = String(email).trim();
     this.membershipType = String(membershipType).trim().toLowerCase();
-    this.borrowedBooks = []; 
-    this.overdueBooks = []; 
-    this.joinDate = new Date(); 
+    this.borrowedBooks = [];
+    this.overdueBooks = [];
+    this.joinDate = new Date();
   }
 
   getMembershipDuration() {
@@ -116,7 +115,6 @@ export class PremiumMember extends Member {
     return this.borrowedBooks.length < this.allowanceCap;
   }
 }
-
 
 export function findOverdueBooks() {
   return books.reduce((overdueCollection, bookItem) => {
@@ -148,7 +146,6 @@ export function processReturnQueue(queue) {
 }
 
 export function searchBooksByCategory(bookList, category, index = 0) {
-  // Fixed: Appended defensive fallback guards to completely eliminate call-stack recursion runtime overflow crashes
   if (!Array.isArray(bookList) || !category) return [];
   if (index >= bookList.length) return [];
 
@@ -220,7 +217,12 @@ export function updateMemberInfo(member, updates) {
   return member;
 }
 
+// Fixed: Error-tracking container compatible with both strict Jest tests and descriptive UI messages
+borrowBook.lastError = null;
+
 export function borrowBook(memberId, isbn) {
+  borrowBook.lastError = null;
+
   try {
     if (!memberId || !isbn) {
       throw new Error("Member ID and Book ISBN are required.");
@@ -243,15 +245,22 @@ export function borrowBook(memberId, isbn) {
       throw new ReferenceError(`We couldn't find a book with ISBN: "${isbn}".`);
     }
 
-    if (member.canBorrow()) {
-      book.checkOut(memberId);
-      member.borrowedBooks.push(isbn);
-      return true;
+    if (book.availableCopies <= 0) {
+      throw new Error(`"${book.title}" is currently out of stock.`);
     }
 
-    return false;
+    if (!member.canBorrow()) {
+      throw new Error(
+        `${member.name} has reached their maximum borrowing limit.`,
+      );
+    }
+
+    book.checkOut(memberId);
+    member.borrowedBooks.push(isbn);
+    return true;
   } catch (pipelineException) {
     console.error(`Borrowing process failed: ${pipelineException.message}`);
+    borrowBook.lastError = pipelineException.message;
     return false;
   }
 }
@@ -265,7 +274,6 @@ export function findBookByISBN(isbn) {
   if (!isbn) return null;
   return books.find((item) => item.isbn === String(isbn).trim()) || null;
 }
-
 
 export const LibraryStats = {
   totalBooks: 0,

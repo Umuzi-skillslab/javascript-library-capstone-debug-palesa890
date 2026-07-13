@@ -257,7 +257,7 @@ describe("Error Handling Contexts", () => {
     books.length = 0; 
     members.length = 0;
     const status = borrowBook("M1", "111");
-    expect(status).toBe(false);hes
+    expect(status).toBe(false);
   });
 
   test("importLibraryData recovers model definitions safely while shielding bad JSON schemas inside try-catch block", () => {
