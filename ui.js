@@ -234,7 +234,6 @@ function handleBorrowSubmit(event) {
     return;
   }
 
-  // Run the transaction (returns true or false)
   const success = borrowBook(resolvedMember.id, targetIsbn);
 
   if (success) {
@@ -248,7 +247,6 @@ function handleBorrowSubmit(event) {
     updateStatisticsDisplay();
     saveToLocalStorage();
   } else {
-    // Read the error set during execution, or fallback to a default message
     const errorMessage =
       borrowBook.lastError ||
       "Transaction failed. Please check your parameters.";
@@ -456,7 +454,6 @@ async function seedInitialMockData() {
         `API Fetch Interrupted: ${apiError.message}. Initiating static fallbacks.`,
       );
 
-      // Resilient local array fallback safeguards
       books.push(
         new Book("9780141187761", "1984", "George Orwell", 1949, 3, "fiction"),
         new Book(
