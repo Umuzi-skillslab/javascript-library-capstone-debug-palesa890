@@ -16,7 +16,6 @@ import {
 
 import { saveToLocalStorage, loadFromLocalStorage } from "./storage.js";
 
-// Central UI Element Registry
 let catalogueContainer;
 let searchInput;
 let filterDropdown;
@@ -24,8 +23,7 @@ let borrowForm;
 let memberFormContainer;
 let memberListContainer;
 
-
-function initializeUI() {
+async function initializeUI() {
   catalogueContainer = document.querySelector("#catalogue-list");
   searchInput = document.getElementById("search");
   filterDropdown = document.querySelector("#filter-category");
@@ -40,7 +38,9 @@ function initializeUI() {
     return;
   }
 
-  seedInitialMockData();
+  if (memberListContainer) memberListContainer.innerHTML = "<p>Loading members database...</p>";
+
+  await seedInitialMockData();
 
   setupEventListeners();
   setupTabNavigation();
@@ -59,7 +59,6 @@ function setupEventListeners() {
   catalogueContainer.addEventListener("click", handleBookClick);
 }
 
-
 function setupTabNavigation() {
   const tabs = ["catalogue", "members", "statistics"];
 
@@ -75,12 +74,10 @@ function setupTabNavigation() {
         if (button) button.classList.remove("active");
       });
 
-      // Bring target segment into view frame
       const targetSection = document.getElementById(`${tabName}-section`);
       if (targetSection) targetSection.style.display = "block";
       targetBtn.classList.add("active");
 
-      // Cross-functional fallback view displays
       const borrowSection = document.getElementById("borrow-section");
       if (borrowSection) {
         borrowSection.style.display =
@@ -95,11 +92,9 @@ function setupTabNavigation() {
   if (defaultBtn) defaultBtn.classList.add("active");
 }
 
-
 function loadCatalogue() {
   renderBookCatalogue(books);
 }
-
 
 function renderBookCatalogue(bookList) {
   catalogueContainer.innerHTML = "";
@@ -130,7 +125,6 @@ function renderBookCatalogue(bookList) {
   catalogueContainer.innerHTML = dynamicHTMLPayload;
 }
 
-
 function handleBookClick(event) {
   const resolvingCardContext = event.target.closest(".book-card");
   if (!resolvingCardContext) return;
@@ -141,8 +135,7 @@ function handleBookClick(event) {
   }
 }
 
-
-function handleSearch(event) {
+async function handleSearch(event) {
   const rawExpression = event.target.value || "";
   const cleanSearchToken = rawExpression.trim().toLowerCase();
 
@@ -151,16 +144,44 @@ function handleSearch(event) {
     return;
   }
 
-  const searchMatches = books.filter(
-    (item) =>
-      item.title.toLowerCase().includes(cleanSearchToken) ||
-      item.author.toLowerCase().includes(cleanSearchToken) ||
-      item.isbn.includes(cleanSearchToken),
-  );
+  catalogueContainer.innerHTML = `<div class="info-notice">Searching global registry...</div>`;
 
-  renderBookCatalogue(searchMatches);
+  try {
+    const searchUrl = `https://openlibrary.org/search.json?q=${encodeURIComponent(cleanSearchToken)}&limit=5`;
+    const response = await fetch(searchUrl);
+    
+    if (!response.ok) throw new Error("Search endpoint dropped query connectivity");
+    
+    const data = await response.json();
+    
+    if (data && data.docs && data.docs.length > 0) {
+      // Map the search documents directly into concrete runtime instances
+      const apiSearchResults = data.docs.map((doc) => {
+        const title = doc.title || "Unknown Title";
+        const author = doc.author_name && doc.author_name.length > 0 ? doc.author_name[0] : "Generic Author";
+        const year = doc.first_publish_year || 2000;
+        
+        // Grab an explicit standard ISBN if it exists, otherwise generate a placeholder key code
+        const isbn = doc.isbn && doc.isbn.length > 0 ? doc.isbn[0] : `MOCK-${doc.key.split('/').pop()}`;
+        
+        const newBookInstance = new Book(isbn, title, author, year, 3, "fiction");
+        
+        if (!books.some(b => b.isbn === isbn)) {
+          books.push(newBookInstance);
+        }
+        
+        return newBookInstance;
+      });
+
+      renderBookCatalogue(apiSearchResults);
+    } else {
+      catalogueContainer.innerHTML = `<div class="info-notice">No records match global parameters.</div>`;
+    }
+  } catch (err) {
+    console.error(`Dynamic Lookup Failed: ${err.message}`);
+    catalogueContainer.innerHTML = `<div class="info-notice error-msg">Search unavailable (Offline fallback error)</div>`;
+  }
 }
-
 
 function handleFilterChange() {
   const targetValue = filterDropdown.value || "all";
@@ -176,7 +197,6 @@ function handleFilterChange() {
   );
   renderBookCatalogue(categoricalMatches);
 }
-
 
 function handleBorrowSubmit(event) {
   event.preventDefault();
@@ -209,7 +229,7 @@ function handleBorrowSubmit(event) {
     loadCatalogue();
     renderMemberList();
     updateStatisticsDisplay();
-    saveToLocalStorage(); 
+    saveToLocalStorage();
   } else {
     displaySystemToast(
       "Transaction Denied: Verify user cap limits or inventory stock levels.",
@@ -217,7 +237,6 @@ function handleBorrowSubmit(event) {
     );
   }
 }
-
 
 function displayBookDetails(isbn) {
   const matchedBookInstance = findBookByISBN(isbn);
@@ -243,7 +262,6 @@ function displayBookDetails(isbn) {
     `;
 }
 
-
 function updateStatisticsDisplay() {
   const totalBooksEl = document.querySelector(".total-books");
   const totalMembersEl = document.querySelector(".total-members");
@@ -259,9 +277,6 @@ function updateStatisticsDisplay() {
   }
 }
 
-/**
- * Dynamically builds management interface forms via memory arrays
- */
 function createMemberForm() {
   if (!memberFormContainer) return;
 
@@ -324,11 +339,10 @@ function createMemberForm() {
       userSubmissionForm.reset();
       renderMemberList();
       updateStatisticsDisplay();
-      saveToLocalStorage(); 
+      saveToLocalStorage();
     });
   }
 }
-
 
 function renderMemberList() {
   if (!memberListContainer) return;
@@ -371,38 +385,83 @@ function displaySystemToast(message, variant = "success") {
   setTimeout(() => structuralToastNode.remove(), 4000);
 }
 
-function seedInitialMockData() {
-  loadFromLocalStorage(); // Triggers the storage system tracking
+async function seedInitialMockData() {
+  loadFromLocalStorage();
+
   if (books.length === 0) {
-    books.push(
-      new Book("9780141187761", "1984", "George Orwell", 1949, 3, "fiction"),
-      new Book(
-        "9780316769174",
-        "The Catcher in the Rye",
-        "J.D. Salinger",
-        1951,
-        2,
-        "fiction",
-      ),
-      new Book(
-        "9780061120084",
-        "To Kill a Mockingbird",
-        "Harper Lee",
-        1960,
-        4,
-        "fiction",
-      ),
-      new Book(
-        "9780451524935",
-        "The Scarlet Letter",
-        "Nathaniel Hawthorne",
-        1850,
-        1,
-        "fiction",
-      ),
-    );
-    saveToLocalStorage();
+    try {
+      // Query Open Library for standard classical literature matching a 'fiction' category matrix
+      const apiEndpoint =
+        "https://openlibrary.org/subjects/classic_fiction.json?limit=5";
+      const response = await fetch(apiEndpoint);
+
+      if (!response.ok) {
+        throw new Error(`HTTP Error Status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data && data.works && data.works.length > 0) {
+        data.works.forEach((work) => {
+          const title = work.title || "Unknown Title";
+          const author =
+            work.authors && work.authors.length > 0
+              ? work.authors[0].name
+              : "Generic Author";
+          const year = work.first_publish_year || 2000;
+
+          const mockIsbn = work.cover_id
+            ? `9780${work.cover_id}00`
+            : String(Math.floor(1000000000000 + Math.random() * 9000000000000));
+          const defaultTotalCopies = Math.floor(Math.random() * 4) + 2; 
+          
+          books.push(
+            new Book(
+              mockIsbn,
+              title,
+              author,
+              year,
+              defaultTotalCopies,
+              "fiction",
+            ),
+          );
+        });
+
+        saveToLocalStorage();
+      } else {
+        throw new Error(
+          "Empty works payload structure returned from endpoint.",
+        );
+      }
+    } catch (apiError) {
+      console.error(
+        `API Fetch Interrupted: ${apiError.message}. Initiating static fallbacks.`,
+      );
+
+      // Resilient local array fallback safeguards
+      books.push(
+        new Book("9780141187761", "1984", "George Orwell", 1949, 3, "fiction"),
+        new Book(
+          "9780316769174",
+          "The Catcher in the Rye",
+          "J.D. Salinger",
+          1951,
+          2,
+          "fiction",
+        ),
+        new Book(
+          "9780061120084",
+          "To Kill a Mockingbird",
+          "Harper Lee",
+          1960,
+          4,
+          "fiction",
+        ),
+      );
+      saveToLocalStorage();
+    }
   }
+
   if (members.length === 0) {
     members.push(
       new Member("M101", "Alice Smith", "alice@example.com"),
