@@ -417,7 +417,7 @@ describe("DOM Manipulation and Catalogue Component Layout Engines", () => {
     const badgeSpan = catalogContainer.querySelector(".badge");
     badgeSpan.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
 
-    expect(clickSpy).toHaveBeenCalledWith("978-01"); /
+    expect(clickSpy).toHaveBeenCalledWith("978-01"); 
   });
 });
 
