@@ -232,7 +232,7 @@ function handleBorrowSubmit(event) {
     saveToLocalStorage();
   } else {
     displaySystemToast(
-      "Transaction Denied: Verify user cap limits or inventory stock levels.",
+      "Transaction failed. Please check that the member ID and ISBN are correct, and that the book is currently in stock",
       "danger",
     );
   }
@@ -414,7 +414,7 @@ async function seedInitialMockData() {
             ? `9780${work.cover_id}00`
             : String(Math.floor(1000000000000 + Math.random() * 9000000000000));
           const defaultTotalCopies = Math.floor(Math.random() * 4) + 2; 
-          
+
           books.push(
             new Book(
               mockIsbn,

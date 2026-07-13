@@ -3,7 +3,6 @@
  * @module library
  */
 
-// Central Configuration Constants (Fixed scoping and missing declarations)
 export let books = [];
 export let members = [];
 export const LATE_FEE_PER_DAY = 0.5;
@@ -223,36 +222,36 @@ export function updateMemberInfo(member, updates) {
 
 export function borrowBook(memberId, isbn) {
   try {
-    if (!memberId || !isbn)
-      throw new Error("Transaction arguments cannot be null or blank values.");
+    if (!memberId || !isbn) {
+      throw new Error("Member ID and Book ISBN are required.");
+    }
     if (typeof memberId !== "string" || typeof isbn !== "string") {
       throw new TypeError(
-        "System transaction identities must consist exclusively of standard string variables.",
+        "Member ID and Book ISBN must be valid text strings.",
       );
     }
 
     const member = findMemberById(memberId);
     const book = findBookByISBN(isbn);
 
-    if (!member)
+    if (!member) {
       throw new ReferenceError(
-        `Verification Fault: Member profiles matching ID [${memberId}] do not exist.`,
+        `We couldn't find a member with ID: "${memberId}".`,
       );
-    if (!book)
-      throw new ReferenceError(
-        `Inventory Fault: Resource matching target ISBN [${isbn}] does not exist.`,
-      );
+    }
+    if (!book) {
+      throw new ReferenceError(`We couldn't find a book with ISBN: "${isbn}".`);
+    }
 
     if (member.canBorrow()) {
       book.checkOut(memberId);
       member.borrowedBooks.push(isbn);
       return true;
     }
+
     return false;
   } catch (pipelineException) {
-    console.error(
-      `Borrow Routine Termination Error: ${pipelineException.message}`,
-    );
+    console.error(`Borrowing process failed: ${pipelineException.message}`);
     return false;
   }
 }
