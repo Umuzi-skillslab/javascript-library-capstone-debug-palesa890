@@ -14,6 +14,8 @@ import {
   LibraryStats,
 } from "./library.js";
 
+import { saveToLocalStorage, loadFromLocalStorage } from "./storage.js";
+
 // Central UI Element Registry
 let catalogueContainer;
 let searchInput;
@@ -51,9 +53,7 @@ function initializeUI() {
 
 function setupEventListeners() {
   searchInput.addEventListener("input", handleSearch);
-
   filterDropdown.addEventListener("change", handleFilterChange);
-
   borrowForm.addEventListener("submit", handleBorrowSubmit);
 
   catalogueContainer.addEventListener("click", handleBookClick);
@@ -75,6 +75,7 @@ function setupTabNavigation() {
         if (button) button.classList.remove("active");
       });
 
+      // Bring target segment into view frame
       const targetSection = document.getElementById(`${tabName}-section`);
       if (targetSection) targetSection.style.display = "block";
       targetBtn.classList.add("active");
@@ -90,10 +91,10 @@ function setupTabNavigation() {
     });
   });
 
-  // Default active landing layer view
   const defaultBtn = document.getElementById("catalogue-tab");
   if (defaultBtn) defaultBtn.classList.add("active");
 }
+
 
 function loadCatalogue() {
   renderBookCatalogue(books);
@@ -128,6 +129,7 @@ function renderBookCatalogue(bookList) {
 
   catalogueContainer.innerHTML = dynamicHTMLPayload;
 }
+
 
 function handleBookClick(event) {
   const resolvingCardContext = event.target.closest(".book-card");
@@ -164,7 +166,7 @@ function handleFilterChange() {
   const targetValue = filterDropdown.value || "all";
   const normalCategoryExpression = targetValue.trim().toLowerCase();
 
-\  if (normalCategoryExpression === "all") {
+  if (normalCategoryExpression === "all") {
     loadCatalogue();
     return;
   }
@@ -174,6 +176,7 @@ function handleFilterChange() {
   );
   renderBookCatalogue(categoricalMatches);
 }
+
 
 function handleBorrowSubmit(event) {
   event.preventDefault();
@@ -206,7 +209,7 @@ function handleBorrowSubmit(event) {
     loadCatalogue();
     renderMemberList();
     updateStatisticsDisplay();
-    saveToLocalStorage();
+    saveToLocalStorage(); 
   } else {
     displaySystemToast(
       "Transaction Denied: Verify user cap limits or inventory stock levels.",
@@ -240,12 +243,12 @@ function displayBookDetails(isbn) {
     `;
 }
 
+
 function updateStatisticsDisplay() {
   const totalBooksEl = document.querySelector(".total-books");
   const totalMembersEl = document.querySelector(".total-members");
   const borrowedCountEl = document.querySelector(".books-borrowed");
 
-  // Fixed: Implemented rigorous element existence checks and used .textContent for security
   if (totalBooksEl) totalBooksEl.textContent = String(books.length);
   if (totalMembersEl) totalMembersEl.textContent = String(members.length);
 
@@ -256,6 +259,9 @@ function updateStatisticsDisplay() {
   }
 }
 
+/**
+ * Dynamically builds management interface forms via memory arrays
+ */
 function createMemberForm() {
   if (!memberFormContainer) return;
 
@@ -318,14 +324,12 @@ function createMemberForm() {
       userSubmissionForm.reset();
       renderMemberList();
       updateStatisticsDisplay();
-      saveToLocalStorage();
+      saveToLocalStorage(); 
     });
   }
 }
 
-/**
- * Spits out clean account index loops
- */
+
 function renderMemberList() {
   if (!memberListContainer) return;
   memberListContainer.innerHTML = "";
@@ -348,119 +352,6 @@ function renderMemberList() {
   });
 }
 
-// DATA PERSISTENCE & PORTABILITY MANAGEMENT ENGINE
-
-
-export function exportLibraryData() {
-  try {
-    const databasePayload = { books, members };
-    return JSON.stringify(databasePayload);
-  } catch (conversionError) {
-    console.error(`Serialization Engine Failed: ${conversionError.message}`);
-    return null;
-  }
-}
-
-export function importLibraryData(jsonString) {
-  try {
-    if (!jsonString) return false;
-    const compiledObjects = JSON.parse(jsonString);
-
-    if (compiledObjects.books && compiledObjects.members) {
-      books.length = 0;
-      compiledObjects.books.forEach((b) =>
-        books.push(
-          new Book(
-            b.isbn,
-            b.title,
-            b.author,
-            b.year,
-            b.totalCopies,
-            b.category,
-          ),
-        ),
-      );
-
-      members.length = 0;
-      compiledObjects.members.forEach((m) => {
-        let rebuiltUser =
-          m.membershipType === "premium"
-            ? new PremiumMember(m.id, m.name, m.email)
-            : new Member(m.id, m.name, m.email);
-        rebuiltUser.borrowedBooks = m.borrowedBooks || [];
-        members.push(rebuiltUser);
-      });
-
-      loadCatalogue();
-      renderMemberList();
-      updateStatisticsDisplay();
-      return true;
-    }
-    return false;
-  } catch (parseFaultException) {
-    console.error(
-      `Structural Integrity Restructuring Error: ${parseFaultException.message}`,
-    );
-    return false;
-  }
-}
-
-export function saveToLocalStorage() {
-  //Safeguarded execution storage scopes using diagnostic checks
-  try {
-    localStorage.setItem("libraryBooks", JSON.stringify(books));
-    localStorage.setItem("libraryMembers", JSON.stringify(members));
-  } catch (discStorageWriteException) {
-    console.error(
-      `Storage Registry Write Fault: ${discStorageWriteException.message}`,
-    );
-  }
-}
-
-export function loadFromLocalStorage() {
-  try {
-    const rawBooksCollectionString = localStorage.getItem("libraryBooks");
-    const rawMembersCollectionString = localStorage.getItem("libraryMembers");
-
-    if (rawBooksCollectionString) {
-      const parsedBooks = JSON.parse(rawBooksCollectionString);
-      books.length = 0;
-      parsedBooks.forEach((b) => {
-        const recoveryInstance = new Book(
-          b.isbn,
-          b.title,
-          b.author,
-          b.year,
-          b.totalCopies,
-          b.category,
-        );
-        recoveryInstance.availableCopies = b.availableCopies;
-        recoveryInstance.checkedOut = b.checkedOut || [];
-        books.push(recoveryInstance);
-      });
-    }
-
-    if (rawMembersCollectionString) {
-      const parsedMembers = JSON.parse(rawMembersCollectionString);
-      members.length = 0;
-      parsedMembers.forEach((m) => {
-        let userInstance =
-          m.membershipType === "premium"
-            ? new PremiumMember(m.id, m.name, m.email)
-            : new Member(m.id, m.name, m.email);
-        userInstance.borrowedBooks = m.borrowedBooks || [];
-        members.push(userInstance);
-      });
-    }
-  } catch (storageRecoveryFault) {
-    console.error(
-      `Local Engine System Profile Restructuring Halted: ${storageRecoveryFault.message}`,
-    );
-  }
-}
-
-// FEEDBACK ALERTS NOTIFICATION INFRASTRUCTURE
-
 function displaySystemToast(message, variant = "success") {
   const structuralToastNode = document.createElement("div");
   structuralToastNode.style.position = "fixed";
@@ -481,7 +372,7 @@ function displaySystemToast(message, variant = "success") {
 }
 
 function seedInitialMockData() {
-  loadFromLocalStorage();
+  loadFromLocalStorage(); // Triggers the storage system tracking
   if (books.length === 0) {
     books.push(
       new Book("9780141187761", "1984", "George Orwell", 1949, 3, "fiction"),
