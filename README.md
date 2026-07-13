@@ -13,7 +13,7 @@ The project decouples data state models, persistence layers, user interface inte
 * `storage.js` — **Data Persistence Layer**: Safely handles cross-session saves via `localStorage` complete with schema integrity audits and JSON parsing fail-safes.
 * `ui.js` — **Interface Controller**: Orchestrates event listeners, live filters, dynamically generated creation forms, and handles render schedules safely using DOM lifecycle listeners.
 * `styles.css` — **Visual Presentation Layout**: Features responsive grid distributions, interactive transition states, and high-contrast alert layers.
-* `library.test.js` — **Quality Control Framework**: Contains 29 automated test definitions evaluated through the Jest test framework.
+* `library.test.js` — **Quality Control Framework**: Contains 36 automated test definitions evaluated through the Jest test framework.
 
 ---
 
@@ -24,7 +24,7 @@ Follow these steps to configure your local workspace environment:
 ### 1. Extract Project Workspace
 Ensure all source tracking files are located in your target development directory:
 ```bash
-cd C:\Users\ppmat\javascript-library-capstone-debug-palesa890
+cd C:\Users\...
 ````
 
 ### 2. Install Development Dependencies
@@ -43,19 +43,19 @@ npm run test:coverage # Generate coverage report
 ### 🖼️ Application Dashboards (Required Captures)
 * Insert actual image links below to document full suite compliance:
 
-* Application Interface Running: ![UI Success](./screenshots/ui_active.png)
+* Application Interface Running: ![UI Success](./screenshots/app.png)
 
-* Browser Console Error-Free: ![Clean Console](./screenshots/console_clear.png)
+* Search: ![Clean Console](./screenshots/search.png)
 
-* Jest Tests Passing (29/29): ![Tests Green](./screenshots/jest_success.png)
+* Jest Tests Passing (29/29): ![Tests Green](./screenshots/tests-passing.png)
 
 * Test Coverage Metrics (>80%): ![Coverage Report](./screenshots/coverage.png)
 
-* Operational Functional Flows: ![Feature Verification](./screenshots/features_working.png)
+* Statitics tab: ![Statistics](./screenshots/statistics.png)
 
-### 💡 Engineering Reflection
-* `Most Complex Bug`: Handling the async data loading race condition. Early execution allowed interface elements to draw ahead of local storage and API array hydration, causing completely blank viewports on launch.
+### 💡 My Reflection
+* `The Toughest Bug`: Honestly, the trickiest part was figuring out why my app would occasionally load as a completely blank page on startup. It turned out to be an asynchronous "race condition." My UI components were trying to draw themselves on the screen before the data from local storage and the external API had actually finished loading!
 
-* `Debugging Strategy`: Traced initialization pipelines via verbose breakpoint profiling logs and resolved the issue by formalizing modern async await load constraints.
+* `How I Fixed It`: To track it down, I set up a bunch of detailed console logs and breakpoints to map out exactly what was loading and when. Once I saw the timeline clash, I used clean async/await blocks to force the app to wait until the data was fully ready before letting the interface render.
 
-* `Lessons Learned`: Enforcing clean separation between structural models and UI render passes prevents asynchronous race conditions and guarantees application reliability.
+* `What I Learned`: This taught me how crucial it is to keep data management and UI rendering completely separate. Ensuring your data is fully loaded before your visual elements try to display it makes the whole app way more stable and reliable.
