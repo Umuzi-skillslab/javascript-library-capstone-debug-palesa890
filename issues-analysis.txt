@@ -1,0 +1,97 @@
+====================================================================
+          MY CAPSTONE 2 PROJECT: ISSUES & DEBUGGING ANALYSIS
+====================================================================
+
+1. THE CRITICAL BUGS I HAD TO FIX (AND WHY THEY BROKE THE APP)
+--------------------------------------------------------------------
+During development, I ran into 15 critical bugs that either crashed 
+the app, broke the user interface, or made the backend tests fail:
+
+[01] Tab Navigation Typo: The HTML had "member-section" but the JS 
+     looked for "members-section". This completely broke the navigation.
+[02] Variable Reference Error: In the borrow book form submission, I used 
+     an undefined variable "inputMemberIdentifier" which silently crashed 
+     the form.
+[03] Array Mutation Glitch: Removing books during active loops was causing 
+     the index to skip, leading to skipped records.
+[04] Unhandled API Rejections: If the Open Library API failed or was 
+     offline, the app crashed because there were no backup try-catch blocks.
+[05] Infinite Recursion Crash: The recursive book search by category would 
+     occasionally hit an infinite loop and crash the browser call stack.
+[06] Boolean vs. Object Conflict: The Jest tests strictly demanded a "false" 
+     returned on failure, but my UI needed a detailed "error object".
+[07] Local Storage Crashes: If local storage had null or corrupted data, 
+     JSON.parse would throw an unhandled error and blank the page.
+[08] Async Race Conditions: The UI was rendering before the mock database 
+     had finished loading from local storage, showing an empty page.
+[09] Target Bubble Failures: Clicking just outside a book card returned "null" 
+     and crashed the click-handler because it couldn't find the ISBN.
+[10] API Data Type Clash: The Open Library API returned ISBNs as arrays 
+     instead of strings, which broke my strict text search comparisons.
+[11] Variable Shadowing: Redefining global variables inside local loops 
+     caused unexpected database resets.
+[12] Missing DOM Elements: If the script loaded on a page missing certain 
+     HTML IDs, the whole initialization script halted.
+[13] Queue Splicing Bug: Manipulating the return queue during a "while" 
+     loop caused infinite processing loops.
+[14] Undefined Parameter Handling: Passing null IDs to member lookups 
+     yielded weird index matchups instead of failing cleanly.
+[15] Strict Comparison Failures: Comparing string member IDs (like "M101") 
+     with numbers using strict "===" meant matches were silently ignored.
+
+
+2. MAJOR PROBLEMS BY JAVASCRIPT CONCEPT
+--------------------------------------------------------------------
+* Changing State Directly (Object Invariants):
+  - The Problem: Directly modifying object properties across the app 
+    instead of using proper class methods.
+  - The Fix: Restructured the code to mutate properties only inside 
+    the actual class files.
+
+* Out-of-Order Execution (Asynchronous Control):
+  - The Problem: API fetches were running in the background while the UI 
+    tried to draw the screen immediately.
+  - The Fix: Used async/await to force the app to wait for the data.
+
+* Silencing Errors (Error Propagation):
+  - The Problem: Writing empty try-catch blocks that swallowed errors, 
+    making bugs incredibly hard to find.
+  - The Fix: Added meaningful console.error logs and user-friendly 
+    toasts to catch failures.
+
+* OOP Scope Issues (Prototypal Scope):
+  - The Problem: Standard members and Premium members lost access to 
+    their custom limits depending on how they were loaded.
+  - The Fix: Ensured that objects recreated from local storage were 
+    properly instantiated back into their original classes.
+
+
+3. WHAT WAS MISSING (FUTURE IMPLEMENTATIONS)
+--------------------------------------------------------------------
+* A "Return Book" Feature: We could borrow books, but we had no interactive 
+  buttons in the UI to return them and put them back in stock.
+* Input Validation: The member registration form allowed duplicate IDs 
+  and bad email formats.
+* A Fine Tracker Ledger: No visual way to track or pay off overdue late 
+  fees on the member dashboard.
+
+
+4. MY STRATEGY FOR RESOLVING THESE ISSUES
+--------------------------------------------------------------------
+I approached debugging in three simple phases:
+
+Phase 1: Secure the Core (Validation)
+  First, I added rigorous type checks to library.js so that invalid 
+  inputs fail gracefully instead of throwing fatal runtime crashes.
+
+Phase 2: Satisfy Both Tests and the UI (State Compatibility)
+  To keep my Jest tests happy (which expected "false" on failure) while 
+  keeping my UI informative, I attached a "lastError" property directly 
+  to the borrowBook function. This let the UI read the specific error 
+  message without changing the function's return type.
+
+Phase 3: Smooth Out UI Execution (DOM & Async)
+  I cleaned up the event listeners to ignore empty clicks and wrapped 
+  my startup functions in strict async sequences to guarantee the data 
+  is ready before anything renders on the screen.
+====================================================================

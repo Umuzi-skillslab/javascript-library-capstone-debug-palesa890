@@ -1,85 +1,104 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Library Management System</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
     <div class="container">
-        <header>
-            <h1>Digital Library System</h1>
-            <nav>
-                <button id="catalogue-tab">Catalogue</button>
-                <button id="members-tab">Members</button>
-                <button id="statistics-tab">Statistics</button>
-            </nav>
-        </header>
-        
-        <main>
-            <section id="catalogue-section">
-                <div class="controls">
-                    <input type="text" id="search" placeholder="Search books...">
-                    <select id="filter-category">
-                        <option value="all">All Categories</option>
-                        <option value="fiction">Fiction</option>
-                        <option value="non-fiction">Non-Fiction</option>
-                        <option value="reference">Reference</option>
-                    </select>
-                </div>
-                
-                <div id="catalogue-list" class="book-grid">
-                    <!-- Books rendered here -->
-                </div>
-                
-                <div id="book-details">
-                    <!-- Selected book details -->
-                </div>
-            </section>
-            
-            <section id="borrow-section">
-                <h2>Borrow a Book</h2>
-                <form id="borrow-form">
-                    <input type="text" id="member-id" placeholder="Member ID" required>
-                    <input type="text" id="isbn" placeholder="ISBN" required>
-                    <button type="submit">Borrow Book</button>
-                </form>
-            </section>
-            
-            <section id="member-section" style="display: none;">
-                <h2>Member Management</h2>
-                <div id="member-form">
-                    <!-- Member form rendered here -->
-                </div>
-                <div id="member-list">
-                    <!-- Members list -->
-                </div>
-            </section>
-            
-            <section id="statistics-section" style="display: none;">
-                <h2>Library Statistics</h2>
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <h3>Total Books</h3>
-                        <p class="total-books">0</p>
-                    </div>
-                    <div class="stat-card">
-                        <h3>Total Members</h3>
-                        <p class="total-members">0</p>
-                    </div>
-                    <div class="stat-card">
-                        <h3>Books Borrowed</h3>
-                        <p class="books-borrowed">0</p>
-                    </div>
-                </div>
-            </section>
-        </main>
+      <header>
+        <h1>Digital Library System</h1>
+        <nav aria-label="Main Navigation">
+          <button id="catalogue-tab" class="active">Catalogue</button>
+          <button id="members-tab">Members</button>
+          <button id="statistics-tab">Statistics</button>
+        </nav>
+      </header>
+
+      <main>
+        <!-- Catalogue Section -->
+        <section id="catalogue-section">
+          <div class="controls">
+            <input 
+              type="search" 
+              id="search" 
+              placeholder="Search books..." 
+              aria-label="Search books"
+            />
+            <select id="filter-category" aria-label="Filter books by category">
+              <option value="all">All Categories</option>
+              <option value="fiction">Fiction</option>
+              <option value="non-fiction">Non-Fiction</option>
+              <option value="reference">Reference</option>
+            </select>
+          </div>
+
+          <div id="catalogue-list" class="book-grid"></div>
+          <div id="book-details"></div>
+        </section>
+
+        <!-- Borrow Section -->
+        <section id="borrow-section">
+          <h2>Borrow a Book</h2>
+          <form id="borrow-form">
+            <div class="form-group">
+              <label for="member-id">Member ID</label>
+              <input
+                type="text"
+                id="member-id"
+                placeholder="e.g., M101"
+                autocapitalize="off"
+                autocorrect="off"
+                spellcheck="false"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label for="isbn">Book ISBN</label>
+              <input 
+                type="text" 
+                id="isbn" 
+                placeholder="e.g., 978-0123456789" 
+                autocapitalize="off"
+                autocorrect="off"
+                spellcheck="false"
+                required 
+              />
+            </div>
+            <button type="submit">Borrow Book</button>
+          </form>
+        </section>
+
+        <!-- Member Section -->
+        <section id="members-section" hidden>
+          <h2>Member Management</h2>
+          <div id="member-form"></div>
+          <div id="member-list"></div>
+        </section>
+
+        <!-- Statistics Section -->
+        <section id="statistics-section" hidden>
+          <h2>Library Statistics</h2>
+          <div class="stats-grid">
+            <div class="stat-card">
+              <h3>Total Books</h3>
+              <p class="total-books">0</p>
+            </div>
+            <div class="stat-card">
+              <h3>Total Members</h3>
+              <p class="total-members">0</p>
+            </div>
+            <div class="stat-card">
+              <h3>Books Borrowed</h3>
+              <p class="books-borrowed">0</p>
+            </div>
+          </div>
+        </section>
+      </main>
     </div>
-    
-    <!-- Scripts in wrong order -->
-    <script src="ui.js"></script>
-    <script src="library.js"></script>
-    <!-- Missing: modules setup -->
-</body>
+
+    <script type="module" src="ui.js"></script>
+  </body>
 </html>

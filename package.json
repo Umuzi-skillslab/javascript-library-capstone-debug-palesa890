@@ -8,10 +8,21 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage"
   },
-  "keywords": ["library", "books", "javascript", "management"],
+  "jest": {
+    "testEnvironment": "jsdom"
+  },
+  "keywords": [
+    "library",
+    "books",
+    "javascript",
+    "management"
+  ],
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "jest": "^29.0.0"
+    "@babel/core": "^7.29.7",
+    "@babel/preset-env": "^7.29.7",
+    "jest": "^29.0.0",
+    "jest-environment-jsdom": "^29.7.0"
   }
 }
