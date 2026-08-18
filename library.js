@@ -186,12 +186,23 @@ export function getBooksByAuthor(authorName) {
 }
 
 export function calculateTotalLateFees(memberRecord) {
-  if (!memberRecord || !Array.isArray(memberRecord.overdueBooks)) return 0.0;
+  // Check if input is directly an array, or an object containing an .overdueBooks array
+  const list = Array.isArray(memberRecord)
+    ? memberRecord
+    : memberRecord && Array.isArray(memberRecord.overdueBooks)
+      ? memberRecord.overdueBooks
+      : [];
 
-  return memberRecord.overdueBooks.reduce((runningSum, activeOverdueItem) => {
-    const calculateQuantum =
-      (Number(activeOverdueItem.daysLate) || 0) * LATE_FEE_PER_DAY;
-    return runningSum + calculateQuantum;
+  if (list.length === 0) return 0.0;
+
+  return list.reduce((runningSum, activeOverdueItem) => {
+    const days =
+      typeof activeOverdueItem === "object" && activeOverdueItem !== null
+        ? Number(activeOverdueItem.daysLate || activeOverdueItem.daysOverdue) ||
+          0
+        : Number(activeOverdueItem) || 0;
+
+    return runningSum + days * LATE_FEE_PER_DAY;
   }, 0);
 }
 
