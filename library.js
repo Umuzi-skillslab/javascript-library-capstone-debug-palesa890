@@ -265,6 +265,49 @@ export function borrowBook(memberId, isbn) {
   }
 }
 
+// Added: Book Return System with error tracking
+returnBook.lastError = null;
+
+export function returnBook(memberId, isbn) {
+  returnBook.lastError = null;
+
+  try {
+    if (!memberId || !isbn) {
+      throw new Error("Member ID and Book ISBN are required.");
+    }
+    if (typeof memberId !== "string" || typeof isbn !== "string") {
+      throw new TypeError("Member ID and Book ISBN must be valid text strings.");
+    }
+
+    const member = findMemberById(memberId);
+    const book = findBookByISBN(isbn);
+
+    if (!member) {
+      throw new ReferenceError(`We couldn't find a member with ID: "${memberId}".`);
+    }
+    if (!book) {
+      throw new ReferenceError(`We couldn't find a book with ISBN: "${isbn}".`);
+    }
+
+    const bookIndexInMember = member.borrowedBooks.indexOf(isbn);
+    if (bookIndexInMember === -1) {
+      throw new Error(`Member "${member.name}" does not have book "${book.title}" checked out.`);
+    }
+
+    const returnedSuccessfully = book.returnResource(memberId);
+    if (!returnedSuccessfully) {
+      throw new Error(`Failed to process return for "${book.title}".`);
+    }
+
+    member.borrowedBooks.splice(bookIndexInMember, 1);
+    return true;
+  } catch (pipelineException) {
+    console.error(`Return process failed: ${pipelineException.message}`);
+    returnBook.lastError = pipelineException.message;
+    return false;
+  }
+}
+
 export function findMemberById(id) {
   if (!id) return undefined;
   return members.find((user) => user.id === String(id).trim()) || undefined;
