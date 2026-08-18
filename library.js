@@ -9,7 +9,15 @@ export const LATE_FEE_PER_DAY = 0.5;
 export const MAX_BOOKS_PER_MEMBER = 5;
 
 export class Book {
-  constructor(isbn, title, author, year, copies = 1, category = "fiction") {
+  constructor(
+    isbn,
+    title,
+    author,
+    year,
+    copies = 1,
+    category = "fiction",
+    coverUrl = "",
+  ) {
     this.isbn = String(isbn).trim();
     this.title = String(title).trim();
     this.author = String(author).trim();
@@ -19,6 +27,9 @@ export class Book {
     this.totalCopies = Math.max(1, Number(copies) || 1);
     this.availableCopies = this.totalCopies;
     this.checkedOut = [];
+    this.coverUrl =
+      coverUrl ||
+      `https://placehold.co/150x200?text=${encodeURIComponent(title)}`;
   }
 
   isAvailable() {

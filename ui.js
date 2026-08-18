@@ -129,8 +129,26 @@ function renderBookCatalogue(bookList) {
       const visualBadgeText =
         bookItem.availableCopies > 0 ? "In Stock" : "Checked Out";
 
+      // Resolve cover URL (uses book property, Open Library ISBN lookup, or a fallback placeholder)
+      const coverUrl =
+        bookItem.coverUrl ||
+        (bookItem.cover_id
+          ? `https://covers.openlibrary.org/b/id/${bookItem.cover_id}-M.jpg`
+          : bookItem.isbn && !bookItem.isbn.startsWith("MOCK-")
+            ? `https://covers.openlibrary.org/b/isbn/${bookItem.isbn}-M.jpg`
+            : `https://placehold.co/150x200?text=${encodeURIComponent(
+                bookItem.title,
+              )}`);
+
       return `
             <div class="book-card" data-isbn="${bookItem.isbn}">
+                <img 
+                  src="${coverUrl}" 
+                  alt="${bookItem.title} Cover" 
+                  class="book-cover-img" 
+                  onerror="this.onerror=null;this.src='https://placehold.co/150x200?text=No+Cover';"
+                  style="width: 100%; height: 200px; object-fit: cover; border-radius: 4px; margin-bottom: 0.5rem;"
+                />
                 <h3>${bookItem.title}</h3>
                 <p><strong>Author:</strong> ${bookItem.author}</p>
                 <p><strong>Category:</strong> ${bookItem.category.toUpperCase()}</p>
@@ -187,6 +205,11 @@ async function handleSearch(event) {
             ? doc.isbn[0]
             : `MOCK-${doc.key.split("/").pop()}`;
 
+        // Extract cover image ID from API search response
+        const coverUrl = doc.cover_i
+          ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg`
+          : `https://placeholder.co/150x200?text=${encodeURIComponent(title)}`;
+
         const newBookInstance = new Book(
           isbn,
           title,
@@ -194,7 +217,9 @@ async function handleSearch(event) {
           year,
           3,
           "fiction",
+          coverUrl, // Pass coverUrl if your Book constructor accepts it
         );
+        newBookInstance.coverUrl = coverUrl;
 
         if (!books.some((b) => b.isbn === isbn)) {
           books.push(newBookInstance);
@@ -381,15 +406,27 @@ function displayBookDetails(isbn) {
     return;
   }
 
+  const coverUrl =
+    matchedBookInstance.coverUrl ||
+    `https://covers.openlibrary.org/b/isbn/${matchedBookInstance.isbn}-M.jpg`;
+
   detailsViewBox.innerHTML = `
-        <div class="detailed-card-panel">
-            <h2>${matchedBookInstance.title}</h2>
-            <hr style="margin: 0.5rem 0; border: 0; border-top: 1px solid #cbd5e1;">
-            <p><strong>Author:</strong> ${matchedBookInstance.author}</p>
-            <p><strong>Global ISBN Code:</strong> ${matchedBookInstance.isbn}</p>
-            <p><strong>Publication Year:</strong> ${matchedBookInstance.year}</p>
-            <p><strong>Categorization Profile:</strong> ${matchedBookInstance.category.toUpperCase()}</p>
-            <p><strong>Current Tracking Pool:</strong> ${matchedBookInstance.availableCopies} available out of ${matchedBookInstance.totalCopies} total copies stored.</p>
+        <div class="detailed-card-panel" style="display: flex; gap: 1rem; align-items: flex-start;">
+            <img 
+              src="${coverUrl}" 
+              alt="${matchedBookInstance.title} Cover" 
+              onerror="this.onerror=null;this.src='https://placehold.co/150x200?text=No+Cover';"
+              style="width: 140px; height: 200px; object-fit: cover; border-radius: 6px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);" 
+            />
+            <div>
+                <h2>${matchedBookInstance.title}</h2>
+                <hr style="margin: 0.5rem 0; border: 0; border-top: 1px solid #cbd5e1;">
+                <p><strong>Author:</strong> ${matchedBookInstance.author}</p>
+                <p><strong>Global ISBN Code:</strong> ${matchedBookInstance.isbn}</p>
+                <p><strong>Publication Year:</strong> ${matchedBookInstance.year}</p>
+                <p><strong>Categorization Profile:</strong> ${matchedBookInstance.category.toUpperCase()}</p>
+                <p><strong>Current Tracking Pool:</strong> ${matchedBookInstance.availableCopies} available out of ${matchedBookInstance.totalCopies} total copies stored.</p>
+            </div>
         </div>
     `;
 }
@@ -573,16 +610,25 @@ async function seedInitialMockData() {
             : String(Math.floor(1000000000000 + Math.random() * 9000000000000));
           const defaultTotalCopies = Math.floor(Math.random() * 4) + 2;
 
-          books.push(
-            new Book(
-              mockIsbn,
-              title,
-              author,
-              year,
-              defaultTotalCopies,
-              "fiction",
-            ),
+          // Generate cover image URL dynamically using Open Library Cover API
+          const coverUrl = work.cover_id
+            ? `https://covers.openlibrary.org/b/id/${work.cover_id}-M.jpg`
+            : `https://placehold.co/150x200?text=${encodeURIComponent(title)}`;
+
+          const newBook = new Book(
+            mockIsbn,
+            title,
+            author,
+            year,
+            defaultTotalCopies,
+            "fiction",
+            coverUrl,
           );
+
+          // Guarantee coverUrl property is set on object
+          newBook.coverUrl = coverUrl;
+
+          books.push(newBook);
         });
 
         saveToLocalStorage();
@@ -596,8 +642,17 @@ async function seedInitialMockData() {
         `API Fetch Interrupted: ${apiError.message}. Initiating static fallbacks.`,
       );
 
-      books.push(
-        new Book("9780141187761", "1984", "George Orwell", 1949, 3, "fiction"),
+      // Static fallback books with explicit Open Library ISBN cover URLs
+      const fallbackBooks = [
+        new Book(
+          "9780141187761",
+          "1984",
+          "George Orwell",
+          1949,
+          3,
+          "fiction",
+          "https://covers.openlibrary.org/b/isbn/9780141187761-M.jpg",
+        ),
         new Book(
           "9780316769174",
           "The Catcher in the Rye",
@@ -605,6 +660,7 @@ async function seedInitialMockData() {
           1951,
           2,
           "fiction",
+          "https://covers.openlibrary.org/b/isbn/9780316769174-M.jpg",
         ),
         new Book(
           "9780061120084",
@@ -613,8 +669,17 @@ async function seedInitialMockData() {
           1960,
           4,
           "fiction",
+          "https://covers.openlibrary.org/b/isbn/9780061120084-M.jpg",
         ),
-      );
+      ];
+
+      fallbackBooks.forEach((book) => {
+        book.coverUrl =
+          book.coverUrl ||
+          `https://covers.openlibrary.org/b/isbn/${book.isbn}-M.jpg`;
+        books.push(book);
+      });
+
       saveToLocalStorage();
     }
   }

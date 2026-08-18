@@ -37,7 +37,7 @@ body {
 
 /* 
    Header & Navigation
-    */
+*/
 header {
     display: flex;
     justify-content: space-between;
@@ -84,7 +84,7 @@ nav button.active {
 
 /* 
    Controls & Dashboard Structure
-    */
+*/
 .controls {
     display: flex;
     gap: 1rem;
@@ -107,14 +107,14 @@ input[type="text"]:focus, select:focus {
 }
 
 /* Grids & Cards */
-.book-grid, .stats-grid, #member-list {
+.book-grid, .stats-grid, #member-list, #catalogue-list {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
     gap: 1.5rem;
     margin-bottom: 2rem;
 }
 
-.book-card, .stat-card, .member-card {
+.stat-card, .member-card {
     background: var(--surface);
     border: 1px solid var(--border);
     padding: 1.5rem;
@@ -123,10 +123,70 @@ input[type="text"]:focus, select:focus {
     transition: transform 0.2s ease, border-color 0.2s ease;
 }
 
-.book-card:hover, .member-card:hover {
+.member-card:hover {
     transform: translateY(-2px);
     border-color: var(--primary);
     cursor: pointer;
+}
+
+/* =========================================================================
+   Book Cards & Cover Media Display Styling
+   ========================================================================= */
+.book-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.book-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--primary);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+}
+
+/* Book Cover Styling */
+.book-card img,
+.book-cover-img {
+    width: 100%;
+    height: 260px;
+    object-fit: cover;
+    background-color: #f1f5f9;
+    border-bottom: 1px solid var(--border);
+    display: block;
+}
+
+/* Content Container Inside Book Cards */
+.book-card-content,
+.book-card h3,
+.book-card p,
+.book-card .badge {
+    padding-left: 1rem;
+    padding-right: 1rem;
+}
+
+.book-card h3 {
+    margin-top: 0.75rem;
+    font-size: 1.1rem;
+    line-height: 1.3;
+}
+
+.book-card p {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    margin-top: 0.25rem;
+}
+
+.book-card .badge {
+    margin-top: auto;
+    margin-bottom: 1rem;
+    margin-left: 1rem;
+    align-self: flex-start;
 }
 
 /* =========================================================================
@@ -160,7 +220,7 @@ form button:hover, #member-form button:hover {
 }
 
 /* =========================================================================
-   Status Badges & Details
+   Status Badges & Details Section
    ========================================================================= */
 .badge {
     display: inline-block;
@@ -179,5 +239,31 @@ form button:hover, #member-form button:hover {
     padding: 1.5rem;
     background: #eef2ff;
     border-left: 4px solid var(--primary);
-    border-radius: 4px;
+    border-radius: 8px;
+}
+
+/* Detailed Card Modal / Panel Cover Layout */
+.detailed-card-panel {
+    display: flex;
+    gap: 1.5rem;
+    align-items: flex-start;
+}
+
+.detailed-card-panel img {
+    width: 140px;
+    height: 200px;
+    object-fit: cover;
+    border-radius: 6px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    flex-shrink: 0;
+}
+
+@media (max-width: 600px) {
+    .detailed-card-panel {
+        flex-direction: column;
+    }
+    .detailed-card-panel img {
+        width: 100%;
+        height: 240px;
+    }
 }
