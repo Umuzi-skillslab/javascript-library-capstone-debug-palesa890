@@ -10,6 +10,7 @@ import {
   Member,
   PremiumMember,
   borrowBook,
+  returnBook,
   findBookByISBN,
   LibraryStats,
 } from "./library.js";
@@ -20,6 +21,7 @@ let catalogueContainer;
 let searchInput;
 let filterDropdown;
 let borrowForm;
+let returnForm;
 let memberFormContainer;
 let memberListContainer;
 
@@ -28,6 +30,7 @@ async function initializeUI() {
   searchInput = document.getElementById("search");
   filterDropdown = document.querySelector("#filter-category");
   borrowForm = document.getElementById("borrow-form");
+  returnForm = document.getElementById("return-form");
   memberFormContainer = document.getElementById("member-form");
   memberListContainer = document.getElementById("member-list");
 
@@ -38,7 +41,8 @@ async function initializeUI() {
     return;
   }
 
-  if (memberListContainer) memberListContainer.innerHTML = "<p>Loading members database...</p>";
+  if (memberListContainer)
+    memberListContainer.innerHTML = "<p>Loading members database...</p>";
 
   await seedInitialMockData();
 
@@ -56,7 +60,15 @@ function setupEventListeners() {
   filterDropdown.addEventListener("change", handleFilterChange);
   borrowForm.addEventListener("submit", handleBorrowSubmit);
 
+  if (returnForm) {
+    returnForm.addEventListener("submit", handleReturnSubmit);
+  }
+
   catalogueContainer.addEventListener("click", handleBookClick);
+
+  if (memberListContainer) {
+    memberListContainer.addEventListener("click", handleMemberListClick);
+  }
 }
 
 function setupTabNavigation() {
@@ -81,6 +93,12 @@ function setupTabNavigation() {
       const borrowSection = document.getElementById("borrow-section");
       if (borrowSection) {
         borrowSection.style.display =
+          tabName === "catalogue" ? "block" : "none";
+      }
+
+      const returnSection = document.getElementById("return-section");
+      if (returnSection) {
+        returnSection.style.display =
           tabName === "catalogue" ? "block" : "none";
       }
 
@@ -149,27 +167,39 @@ async function handleSearch(event) {
   try {
     const searchUrl = `https://openlibrary.org/search.json?q=${encodeURIComponent(cleanSearchToken)}&limit=5`;
     const response = await fetch(searchUrl);
-    
-    if (!response.ok) throw new Error("Search endpoint dropped query connectivity");
-    
+
+    if (!response.ok)
+      throw new Error("Search endpoint dropped query connectivity");
+
     const data = await response.json();
-    
+
     if (data && data.docs && data.docs.length > 0) {
-      // Map the search documents directly into concrete runtime instances
       const apiSearchResults = data.docs.map((doc) => {
         const title = doc.title || "Unknown Title";
-        const author = doc.author_name && doc.author_name.length > 0 ? doc.author_name[0] : "Generic Author";
+        const author =
+          doc.author_name && doc.author_name.length > 0
+            ? doc.author_name[0]
+            : "Generic Author";
         const year = doc.first_publish_year || 2000;
-        
-        // Grab an explicit standard ISBN if it exists, otherwise generate a placeholder key code
-        const isbn = doc.isbn && doc.isbn.length > 0 ? doc.isbn[0] : `MOCK-${doc.key.split('/').pop()}`;
-        
-        const newBookInstance = new Book(isbn, title, author, year, 3, "fiction");
-        
-        if (!books.some(b => b.isbn === isbn)) {
+
+        const isbn =
+          doc.isbn && doc.isbn.length > 0
+            ? doc.isbn[0]
+            : `MOCK-${doc.key.split("/").pop()}`;
+
+        const newBookInstance = new Book(
+          isbn,
+          title,
+          author,
+          year,
+          3,
+          "fiction",
+        );
+
+        if (!books.some((b) => b.isbn === isbn)) {
           books.push(newBookInstance);
         }
-        
+
         return newBookInstance;
       });
 
@@ -251,6 +281,92 @@ function handleBorrowSubmit(event) {
       borrowBook.lastError ||
       "Transaction failed. Please check your parameters.";
     displaySystemToast(errorMessage, "danger");
+  }
+}
+
+/**
+ * Handles submission of the Return Book form
+ */
+function handleReturnSubmit(event) {
+  event.preventDefault();
+
+  const mIdInput =
+    document.getElementById("return-member-id") ||
+    document.getElementById("member-id");
+  const isbnInput =
+    document.getElementById("return-isbn") || document.getElementById("isbn");
+
+  if (!mIdInput || !isbnInput) return;
+
+  const memberId = mIdInput.value.trim();
+  const targetIsbn = isbnInput.value.trim();
+
+  processBookReturn(memberId, targetIsbn, returnForm);
+}
+
+/**
+ * Core execution logic for returning a book
+ */
+function processBookReturn(memberQuery, isbn, formToReset = null) {
+  if (!memberQuery || !isbn) {
+    displaySystemToast(
+      "Return Rejected: Member and ISBN identifiers are required.",
+      "danger",
+    );
+    return false;
+  }
+
+  let resolvedMember = members.find(
+    (m) => m.id.toLowerCase() === memberQuery.toLowerCase(),
+  );
+  if (!resolvedMember) {
+    resolvedMember = members.find(
+      (m) => m.name.toLowerCase() === memberQuery.toLowerCase(),
+    );
+  }
+
+  if (!resolvedMember) {
+    displaySystemToast(
+      `We couldn't find a member matching "${memberQuery}".`,
+      "danger",
+    );
+    return false;
+  }
+
+  const success = returnBook(resolvedMember.id, isbn);
+
+  if (success) {
+    displaySystemToast(
+      `Return Complete! Book with ISBN ${isbn} returned by "${resolvedMember.name}".`,
+      "success",
+    );
+    if (formToReset) formToReset.reset();
+    loadCatalogue();
+    renderMemberList();
+    updateStatisticsDisplay();
+    saveToLocalStorage();
+    return true;
+  } else {
+    const errorMessage =
+      returnBook.lastError ||
+      "Return failed. Verify the member has actively checked out this item.";
+    displaySystemToast(errorMessage, "danger");
+    return false;
+  }
+}
+
+/**
+ * Handles clicks within the member list (e.g. quick return buttons)
+ */
+function handleMemberListClick(event) {
+  const returnBtn = event.target.closest(".quick-return-btn");
+  if (!returnBtn) return;
+
+  const memberId = returnBtn.getAttribute("data-member-id");
+  const isbn = returnBtn.getAttribute("data-isbn");
+
+  if (memberId && isbn) {
+    processBookReturn(memberId, isbn);
   }
 }
 
@@ -372,12 +488,39 @@ function renderMemberList() {
   members.forEach((m) => {
     const structuralDiv = document.createElement("div");
     structuralDiv.className = "member-card";
-    structuralDiv.innerHTML = `
-            <h4>${m.name} (ID: ${m.id})</h4>
-            <p style="font-size: 0.85rem; color: var(--text-muted);">${m.email}</p>
-            <p style="font-size: 0.85rem; margin-top:0.5rem;"><strong>Tier Status:</strong> ${m.membershipType.toUpperCase()}</p>
-            <p style="font-size: 0.85rem;"><strong>Active Loans:</strong> ${m.borrowedBooks.length} items out</p>
+
+    let loansMarkup = `<p style="font-size: 0.85rem;"><strong>Active Loans:</strong> ${m.borrowedBooks.length} items out</p>`;
+
+    if (m.borrowedBooks.length > 0) {
+      loansMarkup += `<ul style="font-size: 0.8rem; margin: 0.5rem 0; padding-left: 1.2rem; list-style-type: disc;">`;
+      m.borrowedBooks.forEach((bookOrIsbn) => {
+        const isbnStr =
+          typeof bookOrIsbn === "object" ? bookOrIsbn.isbn : bookOrIsbn;
+        const matchedBook = findBookByISBN(isbnStr);
+        const bookTitle = matchedBook ? matchedBook.title : isbnStr;
+
+        loansMarkup += `
+          <li style="margin-bottom: 0.25rem;">
+            <span>${bookTitle}</span>
+            <button 
+              class="quick-return-btn" 
+              data-member-id="${m.id}" 
+              data-isbn="${isbnStr}" 
+              style="font-size:0.7rem; padding: 2px 6px; margin-left: 6px; cursor: pointer;">
+              Return
+            </button>
+          </li>
         `;
+      });
+      loansMarkup += `</ul>`;
+    }
+
+    structuralDiv.innerHTML = `
+      <h4>${m.name} (ID: ${m.id})</h4>
+      <p style="font-size: 0.85rem; color: var(--text-muted);">${m.email}</p>
+      <p style="font-size: 0.85rem; margin-top:0.5rem;"><strong>Tier Status:</strong> ${m.membershipType.toUpperCase()}</p>
+      ${loansMarkup}
+    `;
     memberListContainer.appendChild(structuralDiv);
   });
 }
@@ -406,7 +549,6 @@ async function seedInitialMockData() {
 
   if (books.length === 0) {
     try {
-      // Query Open Library for standard classical literature matching a 'fiction' category matrix
       const apiEndpoint =
         "https://openlibrary.org/subjects/classic_fiction.json?limit=5";
       const response = await fetch(apiEndpoint);
@@ -429,7 +571,7 @@ async function seedInitialMockData() {
           const mockIsbn = work.cover_id
             ? `9780${work.cover_id}00`
             : String(Math.floor(1000000000000 + Math.random() * 9000000000000));
-          const defaultTotalCopies = Math.floor(Math.random() * 4) + 2; 
+          const defaultTotalCopies = Math.floor(Math.random() * 4) + 2;
 
           books.push(
             new Book(
